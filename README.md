@@ -6,7 +6,7 @@ summary → confirmation → notification (with photos) to the managers' chat.
 
 ## How it looks like
 
-![image alt]()
+![image alt](https://github.com/rdmitrijj/dabasbox-bot/blob/main/screenshot-2026-09-29_10.41.20.png?raw=true)
 
 
 
