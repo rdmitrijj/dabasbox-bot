@@ -1,0 +1,101 @@
+"""Entry point: python -m bot"""
+
+from __future__ import annotations
+
+import asyncio
+import logging
+import sys
+
+from aiogram import Bot, Dispatcher
+from aiogram.client.default import DefaultBotProperties
+from aiogram.enums import ParseMode
+from aiogram.fsm.storage.base import BaseStorage
+from aiogram.fsm.storage.memory import MemoryStorage
+from aiogram.types import BotCommand
+from pydantic import ValidationError
+
+from .config import Settings, StorageBackend, get_settings
+from .handlers import build_root_router
+from .i18n import LANGUAGES, LanguageMiddleware
+from .services.locks import UserLocks
+from .services.orders import OrderLog
+
+logger = logging.getLogger("dabasbox_bot")
+
+
+def build_storage(settings: Settings) -> BaseStorage:
+    if settings.fsm_storage is StorageBackend.REDIS:
+        from aiogram.fsm.storage.redis import RedisStorage  # requires the `redis` package
+
+        return RedisStorage.from_url(
+            settings.redis_url, state_ttl=settings.redis_state_ttl, data_ttl=settings.redis_state_ttl
+        )
+    return MemoryStorage()
+
+
+def build_dispatcher(settings: Settings, storage: BaseStorage | None = None) -> Dispatcher:
+    dp = Dispatcher(
+        storage=storage or build_storage(settings),
+        settings=settings,
+        user_locks=UserLocks(),
+        order_log=OrderLog(settings.orders_log_path),
+    )
+    language_middleware = LanguageMiddleware()
+    dp.message.outer_middleware(language_middleware)
+    dp.callback_query.outer_middleware(language_middleware)
+    dp.include_router(build_root_router())
+    return dp
+
+
+def build_bot(settings: Settings) -> Bot:
+    return Bot(
+        token=settings.bot_token.get_secret_value(),
+        default=DefaultBotProperties(parse_mode=ParseMode.HTML),
+    )
+
+
+COMMAND_DESCRIPTIONS = {
+    "en": {"start": "Start a new order", "cancel": "Cancel the current order", "language": "Change language", "help": "Help"},
+    "lv": {"start": "Sākt jaunu pasūtījumu", "cancel": "Atcelt pasūtījumu", "language": "Mainīt valodu", "help": "Palīdzība"},
+    "ru": {"start": "Новый заказ", "cancel": "Отменить заказ", "language": "Сменить язык", "help": "Помощь"},
+}
+
+
+async def set_commands(bot: Bot) -> None:
+    """Command menu in the user's Telegram app language (English for everyone else)."""
+    for code in LANGUAGES:
+        commands = [BotCommand(command=c, description=d) for c, d in COMMAND_DESCRIPTIONS[code].items()]
+        await bot.set_my_commands(commands, language_code=None if code == "en" else code)
+
+
+async def main() -> None:
+    try:
+        settings = get_settings()
+    except ValidationError as exc:
+        print(f"Configuration error:\n{exc}\n\nSee .env.example.", file=sys.stderr)
+        raise SystemExit(2) from exc
+
+    logging.basicConfig(
+        level=settings.log_level.upper(),
+        format="%(asctime)s %(levelname)s %(name)s: %(message)s",
+    )
+
+    bot = build_bot(settings)
+    dp = build_dispatcher(settings)
+    try:
+        me = await bot.get_me()
+        logger.info("Starting @%s, storage=%s, admin chat=%s", me.username, settings.fsm_storage.value, settings.admin_chat_id)
+        await set_commands(bot)
+        await bot.delete_webhook(drop_pending_updates=False)
+        await dp.start_polling(bot, allowed_updates=dp.resolve_used_update_types())
+    finally:
+        await dp.storage.close()
+        await bot.session.close()
+
+
+if __name__ == "__main__":
+    try:
+        asyncio.run(main())
+    except (KeyboardInterrupt, SystemExit) as exc:
+        if isinstance(exc, SystemExit) and exc.code not in (None, 0):
+            raise

@@ -1,0 +1,18 @@
+services:
+  bot:
+    build: .
+    env_file: .env
+    environment:
+      FSM_STORAGE: redis
+      REDIS_URL: redis://redis:6379/0
+    volumes:
+      - ./data:/app/data
+    depends_on: [redis]
+    restart: unless-stopped
+  redis:
+    image: redis:7-alpine
+    volumes:
+      - redis-data:/data
+    restart: unless-stopped
+volumes:
+  redis-data:
