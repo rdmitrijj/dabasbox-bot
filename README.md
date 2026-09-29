@@ -1,8 +1,14 @@
 # Dabasbox Order Bot
 
-Telegram bot (aiogram 3.x) that takes orders for Dabasbox protective heat pump enclosures:
+Telegram bot that takes orders for Dabasbox protective heat pump enclosures:
 measurement instructions → net dimensions → 1–3 photos → colour → country → address → contact →
 summary → confirmation → notification (with photos) to the managers' chat.
+
+## How it looks like
+
+![image alt]()
+
+
 
 ## Quick start
 
