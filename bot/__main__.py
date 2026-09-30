@@ -1,17 +1,27 @@
-"""Entry point: python -m bot"""
+"""Entry point: python -m bot
+
+On Render (RENDER_EXTERNAL_URL is set automatically) the bot runs in webhook mode:
+it listens on $PORT and Telegram delivers updates to /webhook.
+Everywhere else (e.g. your own computer) it runs in polling mode as before.
+"""
 
 from __future__ import annotations
 
 import asyncio
 import logging
+import os
+import secrets
+import signal
 import sys
 
+from aiohttp import web
 from aiogram import Bot, Dispatcher
 from aiogram.client.default import DefaultBotProperties
 from aiogram.enums import ParseMode
 from aiogram.fsm.storage.base import BaseStorage
 from aiogram.fsm.storage.memory import MemoryStorage
 from aiogram.types import BotCommand
+from aiogram.webhook.aiohttp_server import SimpleRequestHandler, setup_application
 from pydantic import ValidationError
 
 from .config import Settings, StorageBackend, get_settings
@@ -21,6 +31,8 @@ from .services.locks import UserLocks
 from .services.orders import OrderLog
 
 logger = logging.getLogger("dabasbox_bot")
+
+WEBHOOK_PATH = "/webhook"
 
 
 def build_storage(settings: Settings) -> BaseStorage:
@@ -68,6 +80,46 @@ async def set_commands(bot: Bot) -> None:
         await bot.set_my_commands(commands, language_code=None if code == "en" else code)
 
 
+async def health(_: web.Request) -> web.Response:
+    """Simple page so Render (and you, in a browser) can see the service is up."""
+    return web.Response(text="ok")
+
+
+async def run_webhook(bot: Bot, dp: Dispatcher, base_url: str) -> None:
+    # Telegram sends this secret with every update, so strangers can't post fake updates.
+    secret = os.environ.get("WEBHOOK_SECRET") or secrets.token_urlsafe(32)
+    port = int(os.environ.get("PORT", "10000"))
+
+    app = web.Application()
+    app.router.add_get("/", health)
+    SimpleRequestHandler(dispatcher=dp, bot=bot, secret_token=secret).register(app, path=WEBHOOK_PATH)
+    setup_application(app, dp, bot=bot)
+
+    runner = web.AppRunner(app)
+    await runner.setup()
+    await web.TCPSite(runner, host="0.0.0.0", port=port).start()
+    logger.info("Listening on port %s", port)
+
+    webhook_url = f"{base_url.rstrip('/')}{WEBHOOK_PATH}"
+    await bot.set_webhook(
+        webhook_url,
+        secret_token=secret,
+        allowed_updates=dp.resolve_used_update_types(),
+    )
+    logger.info("Webhook set to %s", webhook_url)
+
+    # Keep running until Render stops the service.
+    stop = asyncio.Event()
+    loop = asyncio.get_running_loop()
+    for sig in (signal.SIGTERM, signal.SIGINT):
+        loop.add_signal_handler(sig, stop.set)
+    try:
+        await stop.wait()
+    finally:
+        logger.info("Shutting down")
+        await runner.cleanup()
+
+
 async def main() -> None:
     try:
         settings = get_settings()
@@ -80,14 +132,24 @@ async def main() -> None:
         format="%(asctime)s %(levelname)s %(name)s: %(message)s",
     )
 
+    base_url = os.environ.get("RENDER_EXTERNAL_URL")  # set automatically by Render
+    mode = "webhook" if base_url else "polling"
+
     bot = build_bot(settings)
     dp = build_dispatcher(settings)
     try:
         me = await bot.get_me()
-        logger.info("Starting @%s, storage=%s, admin chat=%s", me.username, settings.fsm_storage.value, settings.admin_chat_id)
+        logger.info(
+            "Starting @%s, mode=%s, storage=%s, admin chat=%s",
+            me.username, mode, settings.fsm_storage.value, settings.admin_chat_id,
+        )
         await set_commands(bot)
-        await bot.delete_webhook(drop_pending_updates=False)
-        await dp.start_polling(bot, allowed_updates=dp.resolve_used_update_types())
+
+        if base_url:
+            await run_webhook(bot, dp, base_url)
+        else:
+            await bot.delete_webhook(drop_pending_updates=False)
+            await dp.start_polling(bot, allowed_updates=dp.resolve_used_update_types())
     finally:
         await dp.storage.close()
         await bot.session.close()
