@@ -5,6 +5,7 @@ from __future__ import annotations
 import itertools
 import json
 from datetime import datetime, timezone
+from pathlib import Path
 from typing import Any
 
 import pytest
@@ -112,6 +113,14 @@ class Customer:
         )
         await self.dp.feed_update(self.bot, Update(update_id=next(_update_ids), callback_query=cq))
 
+    async def contact_and_payment(
+        self, email: str = "john@example.com", phone: str = "+37120000000", name: str = "John", payment: str = "cash"
+    ) -> None:
+        await self.text(email)
+        await self.text(phone)
+        await self.text(name)
+        await self.press(f"pay:{payment}")
+
     async def state(self) -> str | None:
         return await self.dp.fsm.get_context(self.bot, self.chat.id, self.user.id).get_state()
 
@@ -171,13 +180,29 @@ async def test_full_order_base_color(env):
     await c.text("Riga")
     assert "too short" in c.last_text()
     await c.text("LV-1010, Riga, Brivibas iela 1-5")
-    assert await c.state() == "OrderFSM:waiting_for_contact"
+    assert await c.state() == "OrderFSM:waiting_for_email"
 
-    await c.text("John +37120000000")
-    assert "first name and last name" in c.last_text()
-    await c.text("John Smith +371 2000 0000")
+    await c.text("john@example")
+    assert "valid e-mail" in c.last_text()
+    await c.text("john@Example.com")
+    assert await c.state() == "OrderFSM:waiting_for_phone"
+    await c.text("call me")
+    assert "phone number is not valid" in c.last_text()
+    await c.text("+371 2000 0000")
+    assert await c.state() == "OrderFSM:waiting_for_name"
+    await c.text("J0hn")
+    assert "letters, hyphens" in c.last_text()
+    await c.text("John")
+    assert await c.state() == "OrderFSM:waiting_for_payment"
+    assert c.button_texts() == ["💵 Cash", "🏦 Bank transfer"]
+    await c.text("cash")
+    assert "payment method" in c.last_text()
+    await c.press("pay:transfer")
     assert await c.state() == "OrderFSM:waiting_for_confirmation"
     summary = c.last_text()
+    assert "<b>Name:</b> John" in summary
+    assert "<b>E-mail:</b> john@example.com" in summary
+    assert "<b>Payment:</b> 🏦 Bank transfer" in summary
     assert "M (Base price: 280 €)" in summary
     assert "Anthracite RAL7016 (0 €, included)" in summary
     assert "280 € (excl. 21% VAT)" in summary
@@ -192,8 +217,10 @@ async def test_full_order_base_color(env):
     assert isinstance(admin[0], SendMessage)
     card = admin[0].text
     assert card.startswith("📦 <b>NEW ORDER #DABASBOX-")
-    assert "👤 Customer: John Smith" in card
+    assert "👤 Customer: John\n" in card
+    assert "📧 Email: john@example.com" in card
     assert "📞 Phone: +37120000000" in card
+    assert "💳 Payment: Bank transfer" in card
     assert "🏠 Postal Code &amp; Address: LV-1010, Riga, Brivibas iela 1-5" in card
     assert "750 mm (H) x 900 mm (W) x 450 mm (D)" in card
     assert "TOTAL PRICE: 280 € (excl. 21% VAT)" in card
@@ -208,13 +235,14 @@ async def test_full_order_base_color(env):
 
     record = json.loads(c.log_path.read_text().strip().splitlines()[-1])
     assert record["status"] == "submitted" and record["total_price"] == 280
+    assert record["email"] == "john@example.com" and record["payment"] == "transfer"
 
 
 async def test_custom_color_other_country_shared_contact_manual_price(env):
     c = Customer(env, 222, username=None)
     await c.start()
     await c.press("nav:proceed_dimensions")
-    await c.text("1500x1000x500")
+    await c.text("1700x1000x500")
     assert "Individual Manager Calculation" in c.last_text() or any(
         "Individual Manager Calculation" in (r.text or "") for r in c.session.sent_to(222) if isinstance(r, SendMessage)
     )
@@ -230,11 +258,11 @@ async def test_custom_color_other_country_shared_contact_manual_price(env):
     assert await c.state() == "OrderFSM:waiting_for_country"
     await c.text("Poland")
     await c.text("00-950 Warszawa, ul. Marszalkowska 10")
-    assert await c.state() == "OrderFSM:waiting_for_contact"
-
+    await c.text("anna@example.pl")
     await c.send(contact=Contact(phone_number="48600100200", first_name="Anna", user_id=222))
-    assert "no last name" in c.last_text()
-    await c.text("Anna Kowalska")
+    assert await c.state() == "OrderFSM:waiting_for_name"
+    await c.text("Anna")
+    await c.press("pay:cash")
     assert await c.state() == "OrderFSM:waiting_for_confirmation"
     summary = c.last_text()
     assert "Individual Manager Calculation" in summary
@@ -244,8 +272,8 @@ async def test_custom_color_other_country_shared_contact_manual_price(env):
     await c.press("nav:confirm")
     admin = c.session.sent_to(ADMIN_CHAT_ID)
     card = admin[-2].text
-    assert "Anna Kowalska" in card and "+48600100200" in card
-    assert "Height 1500 mm is above the maximum of 1430 mm" in card
+    assert "Customer: Anna" in card and "+48600100200" in card and "Payment: Cash" in card
+    assert "Height 1700 mm is above the maximum of 1600 mm" in card
     assert "tg://user?id=222" in card
     assert isinstance(admin[-1], SendPhoto)
 
@@ -291,7 +319,7 @@ async def test_admin_failure_keeps_order_for_retry(env, monkeypatch):
     await c.press("color:rr32")
     await c.press("country:ee")
     await c.text("10111 Tallinn, Narva mnt 5")
-    await c.text("Mari Tamm +37250000000")
+    await c.contact_and_payment(email="mari@example.ee", phone="+37250000000", name="Mari")
     assert await c.state() == "OrderFSM:waiting_for_confirmation"
 
     original = c.session.make_request
@@ -336,6 +364,23 @@ async def test_step_images_are_sent_as_photos(env, tmp_path, monkeypatch):
     assert await c.state() == "OrderFSM:waiting_for_country"
 
 
+async def test_language_variant_replaces_step_image(env, tmp_path, monkeypatch):
+    from bot import media
+
+    folder = tmp_path / "dimensions"
+    folder.mkdir()
+    for name in ("dimensions.png", "pumpinfo.png", "pumpinfo.lv.png"):
+        (folder / name).write_bytes(b"fake")
+    monkeypatch.setattr(media, "IMAGES_DIR", tmp_path)
+
+    for user_id, lang, expected in ((901, "en", "pumpinfo.png"), (902, "lv", "pumpinfo.lv.png")):
+        c = Customer(env, user_id, lang=lang)
+        await c.start()
+        await c.press("nav:proceed_dimensions")
+        album = [r for r in c.session.sent_to(user_id) if isinstance(r, SendMediaGroup)][-1]
+        assert [Path(m.media.path).name for m in album.media] == ["dimensions.png", expected]
+
+
 async def test_long_text_goes_after_the_photo(env, tmp_path, monkeypatch):
     from bot import media
 
@@ -377,8 +422,13 @@ async def test_first_start_asks_for_language_then_runs_in_latvian(env):
     await c.text("Rīga, Brīvības iela 1")
     assert "pasta indeksu (Latvija)" in c.last_text()
     await c.text("LV-1010, Rīga, Brīvības iela 1")
-    await c.text("Jānis Bērziņš +37120000000")
+    await c.text("janis@example.lv")
+    await c.text("+37120000000")
+    await c.text("Jānis")
+    assert c.button_texts() == ["💵 Skaidrā naudā", "🏦 Ar bankas pārskaitījumu"]
+    await c.press("pay:cash")
     summary = c.last_text()
+    assert "💳 <b>Apmaksa:</b> 💵 Skaidrā naudā" in summary
     assert "PASŪTĪJUMA KOPSAVILKUMS" in summary
     assert "Antracīts RAL7016 (0 €, iekļauts)" in summary
     assert "🌍 <b>Valsts:</b> Latvija" in summary
@@ -389,6 +439,7 @@ async def test_first_start_asks_for_language_then_runs_in_latvian(env):
     assert "🌍 Country: Latvia" in card  # admin card stays in English
     assert "Anthracite RAL7016" in card
     assert "🗣 Language: Latvian" in card
+    assert "💳 Payment: Cash" in card  # stored as a key, shown in English
 
     # The language is remembered: the next /start goes straight to the order.
     await c.text("/start")

@@ -4,11 +4,11 @@ from bot.validators import (
     ValidationError,
     normalize_phone,
     parse_address,
-    parse_contact_text,
     parse_country,
     parse_custom_color,
     parse_dimensions,
-    parse_full_name,
+    parse_email,
+    parse_first_name,
 )
 
 
@@ -90,22 +90,27 @@ def test_phone_bad(raw):
         normalize_phone(raw)
 
 
-def test_contact_text():
-    c = parse_contact_text("John Smith +37120000000")
-    assert (c.first_name, c.last_name, c.phone) == ("John", "Smith", "+37120000000")
-    c = parse_contact_text("jānis bērziņš, +371 2000 0000")
-    assert (c.first_name, c.last_name, c.phone) == ("Jānis", "Bērziņš", "+37120000000")
-    c = parse_contact_text("Anna Maria O'Neil\n+37120000000")
-    assert (c.first_name, c.last_name) == ("Anna Maria", "O'Neil")
+@pytest.mark.parametrize(
+    ("text", "expected"),
+    [("john@example.com", "john@example.com"), (" John.Smith@Example.LV ", "John.Smith@example.lv"), ("a+b@mail.co.uk", "a+b@mail.co.uk")],
+)
+def test_email_ok(text, expected):
+    assert parse_email(text) == expected
 
 
-@pytest.mark.parametrize("text", ["John +37120000000", "John Smith", "+37120000000", "J0hn Smith +37120000000"])
-def test_contact_text_bad(text):
+@pytest.mark.parametrize("text", ["john", "john@", "@example.com", "john@example", "john @example.com", "a@b@c.com", "john@example.c"])
+def test_email_bad(text):
     with pytest.raises(ValidationError):
-        parse_contact_text(text)
+        parse_email(text)
 
 
-def test_full_name():
-    assert parse_full_name("Mary-Jane Watson") == ("Mary-Jane", "Watson")
+def test_first_name():
+    assert parse_first_name("jānis") == "Jānis"
+    assert parse_first_name(" Anna  Maria ") == "Anna Maria"
+    assert parse_first_name("Mary-Jane") == "Mary-Jane"
+
+
+@pytest.mark.parametrize("text", ["", "J0hn", "+37120000000", "a b c d"])
+def test_first_name_bad(text):
     with pytest.raises(ValidationError):
-        parse_full_name("Mary")
+        parse_first_name(text)

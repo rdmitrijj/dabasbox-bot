@@ -36,6 +36,7 @@ CATEGORIES: tuple[SizeCategory, ...] = (
     SizeCategory("L", (930, 1130), (970, 1120), (480, 540), 320),
     SizeCategory("XL", (1130, 1230), (1020, 1220), (520, 620), 360),
     SizeCategory("XXL", (1230, 1430), (1120, 1320), (520, 820), 420),
+    SizeCategory("XXXL", (1430, 1600), (1120, 1320), (520, 820), 460),
 )
 
 CATEGORY_BY_CODE = {c.code: c for c in CATEGORIES}

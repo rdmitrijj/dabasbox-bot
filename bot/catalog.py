@@ -13,3 +13,9 @@ COUNTRIES: dict[str, str] = {
 }
 
 OTHER_COUNTRY = "Other Country"
+
+# key -> English name for the admin card. Keys are used in callback data.
+PAYMENT_METHODS: dict[str, str] = {
+    "cash": "Cash",
+    "transfer": "Bank transfer",
+}

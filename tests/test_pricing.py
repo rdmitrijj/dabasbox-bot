@@ -17,6 +17,8 @@ from bot.pricing import classify, total_price
         ((1200, 1000, 500), "XL"),
         ((700, 700 + 20, 700), "XXL"),  # depth 700 only fits XXL
         ((1430, 1320, 820), "XXL"),  # XXL upper bounds inclusive
+        ((1431, 1200, 600), "XXXL"),  # height alone pushes to XXXL
+        ((1600, 1320, 820), "XXXL"),  # XXXL upper bounds inclusive
         ((680, 720, 420), "S"),  # S lower bounds inclusive
     ],
 )
@@ -29,7 +31,7 @@ def test_category(dims, expected):
 @pytest.mark.parametrize(
     "dims",
     [
-        (1431, 1000, 500),
+        (1601, 1000, 500),
         (1000, 1321, 500),
         (1000, 1000, 821),
         (679, 800, 450),
@@ -47,6 +49,10 @@ def test_out_of_range_requires_manual_calculation(dims):
 def test_multiple_out_of_range_reported():
     result = classify(2000, 500, 900)
     assert {p.axis.value for p in result.out_of_range} == {"height", "width", "depth"}
+
+
+def test_xxxl_price():
+    assert classify(1500, 1200, 600).base_price == 460
 
 
 def test_total_price():

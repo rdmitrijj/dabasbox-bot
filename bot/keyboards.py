@@ -8,7 +8,7 @@ from aiogram.types import (
     ReplyKeyboardMarkup,
 )
 
-from .catalog import BASE_COLORS, COUNTRIES
+from .catalog import BASE_COLORS, COUNTRIES, PAYMENT_METHODS
 from .i18n import LANGUAGES, Translator
 from .pricing import CUSTOM_COLOR_SURCHARGE
 
@@ -23,6 +23,10 @@ class ColorCb(CallbackData, prefix="color"):
 
 class CountryCb(CallbackData, prefix="country"):
     key: str  # key from COUNTRIES or "other"
+
+
+class PaymentCb(CallbackData, prefix="pay"):
+    method: str  # key from PAYMENT_METHODS
 
 
 class LangCb(CallbackData, prefix="lang"):
@@ -74,12 +78,21 @@ def country_kb(t: Translator) -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(inline_keyboard=rows)
 
 
-def contact_kb(t: Translator) -> ReplyKeyboardMarkup:
+def phone_kb(t: Translator) -> ReplyKeyboardMarkup:
     return ReplyKeyboardMarkup(
         keyboard=[[KeyboardButton(text=t("btn_share_contact"), request_contact=True)]],
         resize_keyboard=True,
         one_time_keyboard=True,
-        input_field_placeholder="John Smith +37120000000",
+        input_field_placeholder="+37120000000",
+    )
+
+
+def payment_kb(t: Translator) -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup(
+        inline_keyboard=[
+            [InlineKeyboardButton(text=t(f"payment_{key}"), callback_data=PaymentCb(method=key).pack())]
+            for key in PAYMENT_METHODS
+        ]
     )
 
 

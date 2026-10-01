@@ -12,7 +12,7 @@ from aiogram.fsm.context import FSMContext
 from aiogram.types import CallbackQuery, Message, ReplyKeyboardRemove
 
 from .. import keyboards as kb
-from ..catalog import BASE_COLORS, COUNTRIES
+from ..catalog import BASE_COLORS, COUNTRIES, PAYMENT_METHODS
 from ..config import Settings
 from ..i18n import LANGUAGES, Translator
 from ..media import send_step
@@ -26,12 +26,11 @@ from ..validators import (
     ValidationError,
     normalize_phone,
     parse_address,
-    parse_contact_text,
     parse_country,
     parse_custom_color,
     parse_dimensions,
-    parse_full_name,
-    validate_name_part,
+    parse_email,
+    parse_first_name,
 )
 
 logger = logging.getLogger(__name__)
@@ -70,7 +69,7 @@ async def on_instructions_ack(callback: CallbackQuery, state: FSMContext, t: Tra
     await _drop_markup(callback)
     await state.set_state(OrderFSM.waiting_for_dimensions)
     if isinstance(callback.message, Message):
-        await send_step(callback.message, "dimensions", t("ask_dimensions"))
+        await send_step(callback.message, "dimensions", t("ask_dimensions"), lang=t.lang)
 
 
 # ============================================================ Step 2: dimensions
@@ -114,7 +113,7 @@ async def on_dimensions(message: Message, state: FSMContext, t: Translator) -> N
         )
 
     await state.set_state(OrderFSM.waiting_for_photos)
-    await send_step(message, "photos", t("ask_photos"))
+    await send_step(message, "photos", t("ask_photos"), lang=t.lang)
 
 
 # ============================================================ Step 3: photos
@@ -181,7 +180,7 @@ async def on_photos_done(callback: CallbackQuery, state: FSMContext, user_locks:
         await state.update_data(photo_status_msg_id=None)
         await state.set_state(OrderFSM.waiting_for_color)
     if isinstance(callback.message, Message):
-        await send_step(callback.message, "color", t("ask_color"), kb.color_kb(t))
+        await send_step(callback.message, "color", t("ask_color"), kb.color_kb(t), lang=t.lang)
 
 
 # ============================================================ Step 4: colour
@@ -193,7 +192,7 @@ async def on_color(callback: CallbackQuery, callback_data: kb.ColorCb, state: FS
         await _drop_markup(callback)
         await state.set_state(OrderFSM.waiting_for_custom_color_code)
         if isinstance(callback.message, Message):
-            await send_step(callback.message, "custom_color", t("ask_custom_color"))
+            await send_step(callback.message, "custom_color", t("ask_custom_color"), lang=t.lang)
         return
 
     name = BASE_COLORS.get(callback_data.key)
@@ -207,7 +206,7 @@ async def on_color(callback: CallbackQuery, callback_data: kb.ColorCb, state: FS
     await state.set_state(OrderFSM.waiting_for_country)
     if isinstance(callback.message, Message):
         await callback.message.answer(t("color_chosen", name=display, surcharge=t("surcharge_included")))
-        await send_step(callback.message, "country", t("ask_country"), kb.country_kb(t))
+        await send_step(callback.message, "country", t("ask_country"), kb.country_kb(t), lang=t.lang)
 
 
 @router.message(OrderFSM.waiting_for_custom_color_code, F.text)
@@ -226,7 +225,7 @@ async def on_custom_color(message: Message, state: FSMContext, t: Translator) ->
             surcharge=t("surcharge_custom", surcharge=CUSTOM_COLOR_SURCHARGE),
         )
     )
-    await send_step(message, "country", t("ask_country"), kb.country_kb(t))
+    await send_step(message, "country", t("ask_country"), kb.country_kb(t), lang=t.lang)
 
 
 # ============================================================ Step 5: country
@@ -248,7 +247,8 @@ async def on_country(callback: CallbackQuery, callback_data: kb.CountryCb, state
     await state.set_state(OrderFSM.waiting_for_address)
     if isinstance(callback.message, Message):
         await send_step(
-            callback.message, "address", f"{t('country_chosen', country=t.country(country))}\n\n{t('ask_address')}"
+            callback.message, "address", f"{t('country_chosen', country=t.country(country))}\n\n{t('ask_address')}",
+            lang=t.lang,
         )
 
 
@@ -268,7 +268,8 @@ async def on_country_text(message: Message, state: FSMContext, t: Translator) ->
     await state.update_data(country=country)
     await state.set_state(OrderFSM.waiting_for_address)
     await send_step(
-        message, "address", f"{t('country_chosen', country=escape(t.country(country)))}\n\n{t('ask_address')}"
+        message, "address", f"{t('country_chosen', country=escape(t.country(country)))}\n\n{t('ask_address')}",
+        lang=t.lang,
     )
 
 
@@ -286,66 +287,74 @@ async def on_address(message: Message, state: FSMContext, t: Translator) -> None
         await _error(message, t, exc)
         return
     await state.update_data(zip_code=address.zip_code, address=address.address)
-    await state.set_state(OrderFSM.waiting_for_contact)
+    await state.set_state(OrderFSM.waiting_for_email)
     await message.answer(t("address_saved", zip=escape(address.zip_code), address=escape(address.address)))
-    await send_step(message, "contact", t("ask_contact"), kb.contact_kb(t))
+    await send_step(message, "email", t("ask_email"), lang=t.lang)
 
 
-# ============================================================ Step 7: contact
+# ============================================================ Step 7: e-mail, phone, first name
 
-async def _contact_complete(
-    message: Message, state: FSMContext, t: Translator, first: str, last: str, phone: str
-) -> None:
-    await state.update_data(first_name=first, last_name=last, phone=phone, awaiting_full_name=False)
-    await message.answer(
-        t("contact_saved", name=escape(f"{first} {last}"), phone=escape(phone)),
-        reply_markup=ReplyKeyboardRemove(),
-    )
-    await _show_summary(message, state, t)
+@router.message(OrderFSM.waiting_for_email, F.text)
+async def on_email(message: Message, state: FSMContext, t: Translator) -> None:
+    try:
+        email = parse_email(message.text or "")
+    except ValidationError as exc:
+        await _error(message, t, exc)
+        return
+    await state.update_data(email=email)
+    await state.set_state(OrderFSM.waiting_for_phone)
+    await send_step(message, "phone", t("ask_phone"), kb.phone_kb(t), lang=t.lang)
 
 
-@router.message(OrderFSM.waiting_for_contact, F.contact)
+async def _phone_entered(message: Message, state: FSMContext, t: Translator, raw: str) -> None:
+    try:
+        phone = normalize_phone(raw)
+    except ValidationError as exc:
+        await _error(message, t, exc)
+        return
+    await state.update_data(phone=phone)
+    await state.set_state(OrderFSM.waiting_for_name)
+    await send_step(message, "name", t("ask_name"), ReplyKeyboardRemove(), lang=t.lang)
+
+
+@router.message(OrderFSM.waiting_for_phone, F.contact)
 async def on_shared_contact(message: Message, state: FSMContext, t: Translator) -> None:
-    contact = message.contact
-    assert contact is not None
+    assert message.contact is not None
+    await _phone_entered(message, state, t, message.contact.phone_number)
+
+
+@router.message(OrderFSM.waiting_for_phone, F.text)
+async def on_phone_text(message: Message, state: FSMContext, t: Translator) -> None:
+    await _phone_entered(message, state, t, message.text or "")
+
+
+@router.message(OrderFSM.waiting_for_name, F.text)
+async def on_name(message: Message, state: FSMContext, t: Translator) -> None:
     try:
-        phone = normalize_phone(contact.phone_number)
+        first_name = parse_first_name(message.text or "")
     except ValidationError as exc:
         await _error(message, t, exc)
         return
+    await state.update_data(first_name=first_name)
+    await state.set_state(OrderFSM.waiting_for_payment)
+    await send_step(message, "payment", t("ask_payment"), kb.payment_kb(t), lang=t.lang)
 
-    first_raw = (contact.first_name or "").strip()
-    last_raw = (contact.last_name or "").strip()
-    try:
-        first = validate_name_part(first_raw.split()[0], "First name") if first_raw else ""
-        last = validate_name_part(last_raw.split()[-1], "Last name") if last_raw else ""
-    except ValidationError:
-        first = last = ""  # Telegram names may contain emoji etc. — ask for them explicitly.
 
-    if first and last:
-        await _contact_complete(message, state, t, first, last, phone)
+# ============================================================ Step 8: payment method
+
+@router.callback_query(OrderFSM.waiting_for_payment, kb.PaymentCb.filter())
+async def on_payment(callback: CallbackQuery, callback_data: kb.PaymentCb, state: FSMContext, t: Translator) -> None:
+    await callback.answer()
+    if callback_data.method not in PAYMENT_METHODS:
         return
-    await state.update_data(phone=phone, awaiting_full_name=True)
-    await message.answer(t("ask_last_name"), reply_markup=ReplyKeyboardRemove())
+    await _drop_markup(callback)
+    await state.update_data(payment=callback_data.method)
+    if isinstance(callback.message, Message):
+        await callback.message.answer(t("payment_chosen", payment=t(f"payment_{callback_data.method}")))
+        await _show_summary(callback.message, state, t)
 
 
-@router.message(OrderFSM.waiting_for_contact, F.text)
-async def on_contact_text(message: Message, state: FSMContext, t: Translator) -> None:
-    data = await state.get_data()
-    try:
-        if data.get("awaiting_full_name") and data.get("phone"):
-            first, last = parse_full_name(message.text or "")
-            phone = data["phone"]
-        else:
-            parsed = parse_contact_text(message.text or "")
-            first, last, phone = parsed.first_name, parsed.last_name, parsed.phone
-    except ValidationError as exc:
-        await _error(message, t, exc)
-        return
-    await _contact_complete(message, state, t, first, last, phone)
-
-
-# ============================================================ Step 8: summary & confirmation
+# ============================================================ Step 9: summary & confirmation
 
 async def _show_summary(message: Message, state: FSMContext, t: Translator) -> None:
     try:
@@ -436,7 +445,10 @@ STATE_HINTS: dict[str, str] = {
     OrderFSM.waiting_for_custom_color_code.state: "hint_custom_color",
     OrderFSM.waiting_for_country.state: "hint_country",
     OrderFSM.waiting_for_address.state: "hint_address",
-    OrderFSM.waiting_for_contact.state: "hint_contact",
+    OrderFSM.waiting_for_email.state: "hint_email",
+    OrderFSM.waiting_for_phone.state: "hint_phone",
+    OrderFSM.waiting_for_name.state: "hint_name",
+    OrderFSM.waiting_for_payment.state: "hint_payment",
     OrderFSM.waiting_for_confirmation.state: "hint_confirmation",
 }
 

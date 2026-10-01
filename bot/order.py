@@ -5,6 +5,7 @@ from __future__ import annotations
 from dataclasses import asdict, dataclass, field
 from typing import TYPE_CHECKING, Any
 
+from .catalog import PAYMENT_METHODS
 from .pricing import CATEGORY_BY_CODE, color_surcharge, total_price
 from .utils import escape
 
@@ -32,9 +33,10 @@ class Order:
     country: str
     zip_code: str
     address: str
-    first_name: str
-    last_name: str
+    email: str
     phone: str
+    first_name: str
+    payment: str  # key in catalog.PAYMENT_METHODS
     color_key: str | None = None  # key in catalog.BASE_COLORS, or "custom"
     custom_color_code: str | None = None
     language: str | None = None  # customer's bot language code
@@ -46,7 +48,7 @@ class Order:
 
     REQUIRED = (
         "height", "width", "depth", "photos", "color_name", "custom_color",
-        "country", "zip_code", "address", "first_name", "last_name", "phone",
+        "country", "zip_code", "address", "email", "phone", "first_name", "payment",
     )
 
     @classmethod
@@ -57,6 +59,8 @@ class Order:
         category = data.get("category")
         if category is not None and category not in CATEGORY_BY_CODE:
             raise IncompleteOrderError(f"unknown category {category!r}")
+        if data["payment"] not in PAYMENT_METHODS:
+            raise IncompleteOrderError(f"unknown payment method {data['payment']!r}")
         return cls(
             height=int(data["height"]),
             width=int(data["width"]),
@@ -69,9 +73,10 @@ class Order:
             country=str(data["country"]),
             zip_code=str(data["zip_code"]),
             address=str(data["address"]),
-            first_name=str(data["first_name"]),
-            last_name=str(data["last_name"]),
+            email=str(data["email"]),
             phone=str(data["phone"]),
+            first_name=str(data["first_name"]),
+            payment=str(data["payment"]),
             color_key=data.get("color_key"),
             custom_color_code=data.get("custom_color_code"),
         )
@@ -106,7 +111,7 @@ class Order:
 
     def _category_line(self) -> str:
         if self.needs_manual_calculation:
-            return "⚠️ Individual Manager Calculation (dimensions outside the S–XXL range)"
+            return "⚠️ Individual Manager Calculation (dimensions outside the standard size range)"
         return f"{self.category} (Base price: {self.base_price} €) [excl. 21% VAT]"
 
     def _total_line(self) -> str:
@@ -159,8 +164,10 @@ class Order:
                 t("sum_country", country=e(t.country(self.country))),
                 t("sum_address", zip=e(self.zip_code), address=e(self.address)),
                 "",
-                t("sum_contact", name=e(f"{self.first_name} {self.last_name}")),
+                t("sum_contact", name=e(self.first_name)),
+                t("sum_email", email=e(self.email)),
                 t("sum_phone", phone=e(self.phone)),
+                t("sum_payment", payment=t(f"payment_{self.payment}")),
                 "",
                 total,
                 "",
@@ -182,7 +189,8 @@ class Order:
             [
                 f"📦 <b>NEW ORDER #DABASBOX-{e(self.order_id)}</b>",
                 "",
-                f"👤 Customer: {e(self.first_name)} {e(self.last_name)}",
+                f"👤 Customer: {e(self.first_name)}",
+                f"📧 Email: {e(self.email)}",
                 f"📞 Phone: {e(self.phone)}",
                 f"💬 Telegram: {tg}",
                 *([f"🗣 Language: {e(LANGUAGE_NAMES.get(self.language, self.language))}"] if self.language else []),
@@ -194,6 +202,7 @@ class Order:
                 "",
                 f"🎨 Color: {e(self.color_name)} {e(self._color_surcharge_text())}",
                 f"💰 <b>TOTAL PRICE: {e(self._total_line())}</b>",
+                f"💳 Payment: {e(PAYMENT_METHODS[self.payment])}",
                 "",
                 f"🖼 Photos attached below ({len(self.photos)} pcs)",
             ]

@@ -46,7 +46,7 @@ TEXTS: dict[str, str] = {
     "dims_line": "📐 Net dimensions: <b>{h} (H) x {w} (W) x {d} (D) mm</b>",
     "dims_category": "🏷 Size category: <b>{category}</b>\n💶 Base price: <b>{price} €</b> (excl. 21% VAT)",
     "manual_notice": (
-        "ℹ️ Your unit's dimensions are outside our standard size range (S–XXL):\n{problems}\n\n"
+        "ℹ️ Your unit's dimensions are outside our standard size range:\n{problems}\n\n"
         "No problem — your order will be flagged for <b>Individual Manager Calculation</b>. "
         "You can continue; a manager will contact you with the exact price."
     ),
@@ -93,28 +93,31 @@ TEXTS: dict[str, str] = {
     ),
     "address_saved": "🏠 Postal code: <b>{zip}</b>\nAddress: <b>{address}</b>",
     # ------------------------------------------------------------------ contact
-    "ask_contact": (
-        "👤 Please send your <b>First Name, Last Name and phone number</b>, for example:\n"
-        "<code>John Smith +37120000000</code>\n\n"
-        "Or tap <b>📱 Share Contact</b> below to fill it in automatically."
-    ),
-    "ask_last_name": (
-        "Thanks! Your Telegram contact has no last name. Please type your <b>First Name and Last Name</b>, "
-        "e.g. <code>John Smith</code>"
+    "ask_email": "📧 Please enter your <b>e-mail address</b>, e.g. <code>john@example.com</code>",
+    "ask_phone": (
+        "📞 Please enter your <b>phone number</b> in the international format, e.g. <code>+37120000000</code>\n\n"
+        "Or tap <b>📱 Share Contact</b> below."
     ),
     "btn_share_contact": "📱 Share Contact",
-    "contact_saved": "👤 Contact saved: <b>{name}</b>, {phone}",
+    "ask_name": "👤 Please enter your <b>first name</b>, e.g. <code>John</code>",
+    # ------------------------------------------------------------------ payment
+    "ask_payment": "💳 Please choose the payment method:",
+    "payment_cash": "💵 Cash",
+    "payment_transfer": "🏦 Bank transfer",
+    "payment_chosen": "💳 Payment: <b>{payment}</b>",
     # ------------------------------------------------------------------ summary
     "summary_title": "🧾 <b>ORDER SUMMARY</b>",
     "sum_dims": "📐 <b>Net dimensions:</b> {h} (H) x {w} (W) x {d} (D) mm",
     "sum_category": "🏷 <b>Category:</b> {category} (Base price: {price} €) [excl. 21% VAT]",
-    "sum_category_manual": "🏷 <b>Category:</b> ⚠️ Individual Manager Calculation (dimensions outside the S–XXL range)",
+    "sum_category_manual": "🏷 <b>Category:</b> ⚠️ Individual Manager Calculation (dimensions outside the standard size range)",
     "sum_photos": "🖼 <b>Photos:</b> {count} pcs",
     "sum_color": "🎨 <b>Color:</b> {color} {surcharge}",
     "sum_country": "🌍 <b>Country:</b> {country}",
     "sum_address": "🏠 <b>Address:</b> {zip}, {address}",
-    "sum_contact": "👤 <b>Contact:</b> {name}",
+    "sum_contact": "👤 <b>Name:</b> {name}",
+    "sum_email": "📧 <b>E-mail:</b> {email}",
     "sum_phone": "📞 <b>Phone:</b> {phone}",
+    "sum_payment": "💳 <b>Payment:</b> {payment}",
     "sum_total": "💰 <b>TOTAL PRICE:</b> {total} € (excl. 21% VAT)",
     "sum_breakdown": "   = {base} € base + {surcharge} € colour surcharge",
     "sum_total_manual": "💰 <b>TOTAL PRICE:</b> TO BE CALCULATED BY A MANAGER",
@@ -146,7 +149,10 @@ TEXTS: dict[str, str] = {
     "hint_custom_color": "Please type the RAL or NCS colour code, e.g. <code>RAL 9005</code>",
     "hint_country": "Please choose a country with the buttons above or type its name.",
     "hint_address": "Please send the postal code and delivery address as text.",
-    "hint_contact": "Please send your name and phone number as text, or tap “📱 Share Contact”.",
+    "hint_email": "Please send your e-mail address as text, e.g. <code>john@example.com</code>",
+    "hint_phone": "Please send your phone number as text, or tap “📱 Share Contact”.",
+    "hint_name": "Please send your first name as text.",
+    "hint_payment": "Please choose the payment method using the buttons above.",
     "hint_confirmation": "Please confirm or cancel the order using the buttons above.",
     # ------------------------------------------------------------------ validation errors
     "err_dims_format": (
@@ -170,10 +176,6 @@ TEXTS: dict[str, str] = {
     "err_postal_missing": "I couldn't find a postal code in the address. Please include it.",
     "err_address_rest": "Please add the city, street and house number after the postal code.",
     "err_phone": "The phone number is not valid. Please use the international format, e.g. +37120000000",
-    "err_name_chars": "Names may contain letters, hyphens and apostrophes only.",
-    "err_full_name": "Please enter both your first name and last name, e.g. John Smith",
-    "err_contact_format": (
-        "Please send your First Name, Last Name and phone number, e.g.\n"
-        "John Smith +37120000000\n\nor tap “Share Contact” below."
-    ),
+    "err_email": "This doesn't look like a valid e-mail address. Example: john@example.com",
+    "err_name_chars": "The first name may contain letters, hyphens and apostrophes only.",
 }

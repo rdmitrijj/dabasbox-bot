@@ -139,10 +139,9 @@ def parse_address(text: str, country: str) -> Address:
     return Address(zip_code=zip_code, address=rest)
 
 
-# --------------------------------------------------------------------------- contact
+# --------------------------------------------------------------------------- phone / name
 
 E164_RE = re.compile(r"^\+?[1-9]\d{6,14}$")  # E.164: up to 15 digits; 7 is a sane minimum for real numbers
-PHONE_CANDIDATE_RE = re.compile(r"\+?\d[\d\s\-().]{5,22}\d")
 NAME_PART_RE = re.compile(r"^[^\W\d_]+(?:['’\-][^\W\d_]+)*\.?$", re.UNICODE)
 
 
@@ -162,34 +161,22 @@ def validate_name_part(value: str, label: str) -> str:
     return value[0].upper() + value[1:]
 
 
-@dataclass(frozen=True)
-class Contact:
-    first_name: str
-    last_name: str
-    phone: str
+def parse_first_name(text: str) -> str:
+    """One or more name parts, e.g. 'Anna' or 'Anna Maria'."""
+    parts = text.split()
+    if not parts or len(parts) > 3:
+        raise ValidationError("err_name_chars")
+    return " ".join(validate_name_part(part, "First name") for part in parts)
 
 
-def parse_full_name(text: str) -> tuple[str, str]:
-    parts = [p for p in re.split(r"[\s,;]+", text.strip()) if p]
-    if len(parts) < 2:
-        raise ValidationError("err_full_name")
-    first = validate_name_part(parts[0], "First name")
-    last = validate_name_part(parts[-1], "Last name")
-    middle = [validate_name_part(p, "Name") for p in parts[1:-1]]
-    if middle:
-        first = " ".join([first, *middle])
-    return first, last
+# --------------------------------------------------------------------------- e-mail
+
+EMAIL_RE = re.compile(r"^[^@\s]+@[^@\s.]+(?:\.[^@\s.]+)*\.[^\W\d_]{2,}$", re.UNICODE)
 
 
-def parse_contact_text(text: str) -> Contact:
-    """Parse 'First Last +37120000000' (commas / new lines also accepted)."""
+def parse_email(text: str) -> str:
     value = text.strip()
-    phone_match = None
-    for m in PHONE_CANDIDATE_RE.finditer(value):
-        phone_match = m  # take the last phone-looking fragment
-    if phone_match is None:
-        raise ValidationError("err_contact_format")
-    phone = normalize_phone(phone_match.group(0))
-    name_text = (value[: phone_match.start()] + " " + value[phone_match.end():]).strip(" ,;\n")
-    first, last = parse_full_name(name_text)
-    return Contact(first, last, phone)
+    if len(value) > 254 or not EMAIL_RE.match(value):
+        raise ValidationError("err_email")
+    local, domain = value.rsplit("@", 1)
+    return f"{local}@{domain.lower()}"

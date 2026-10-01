@@ -42,7 +42,7 @@ TEXTS: dict[str, str] = {
     "dims_line": "📐 Neto izmēri: <b>{h} (A) x {w} (P) x {d} (Dz) mm</b>",
     "dims_category": "🏷 Izmēru kategorija: <b>{category}</b>\n💶 Bāzes cena: <b>{price} €</b> (bez 21% PVN)",
     "manual_notice": (
-        "ℹ️ Jūsu iekārtas izmēri ir ārpus mūsu standarta izmēru diapazona (S–XXL):\n{problems}\n\n"
+        "ℹ️ Jūsu iekārtas izmēri ir ārpus mūsu standarta izmēru diapazona:\n{problems}\n\n"
         "Nekas — pasūtījums tiks atzīmēts <b>individuālam menedžera aprēķinam</b>. "
         "Varat turpināt; menedžeris sazināsies ar jums, lai paziņotu precīzu cenu."
     ),
@@ -89,28 +89,31 @@ TEXTS: dict[str, str] = {
     ),
     "address_saved": "🏠 Pasta indekss: <b>{zip}</b>\nAdrese: <b>{address}</b>",
     # ------------------------------------------------------------------ contact
-    "ask_contact": (
-        "👤 Lūdzu, nosūtiet savu <b>vārdu, uzvārdu un tālruņa numuru</b>, piemēram:\n"
-        "<code>Jānis Bērziņš +37120000000</code>\n\n"
-        "Vai nospiediet <b>📱 Dalīties ar kontaktu</b> zemāk, lai aizpildītu automātiski."
-    ),
-    "ask_last_name": (
-        "Paldies! Jūsu Telegram kontaktam nav uzvārda. Lūdzu, ierakstiet savu <b>vārdu un uzvārdu</b>, "
-        "piem. <code>Jānis Bērziņš</code>"
+    "ask_email": "📧 Lūdzu, ievadiet savu <b>e-pasta adresi</b>, piem. <code>janis@example.com</code>",
+    "ask_phone": (
+        "📞 Lūdzu, ievadiet savu <b>tālruņa numuru</b> starptautiskajā formātā, piem. <code>+37120000000</code>\n\n"
+        "Vai nospiediet <b>📱 Dalīties ar kontaktu</b> zemāk."
     ),
     "btn_share_contact": "📱 Dalīties ar kontaktu",
-    "contact_saved": "👤 Kontakts saglabāts: <b>{name}</b>, {phone}",
+    "ask_name": "👤 Lūdzu, ievadiet savu <b>vārdu</b>, piem. <code>Jānis</code>",
+    # ------------------------------------------------------------------ payment
+    "ask_payment": "💳 Lūdzu, izvēlieties apmaksas veidu:",
+    "payment_cash": "💵 Skaidrā naudā",
+    "payment_transfer": "🏦 Ar bankas pārskaitījumu",
+    "payment_chosen": "💳 Apmaksa: <b>{payment}</b>",
     # ------------------------------------------------------------------ summary
     "summary_title": "🧾 <b>PASŪTĪJUMA KOPSAVILKUMS</b>",
     "sum_dims": "📐 <b>Neto izmēri:</b> {h} (A) x {w} (P) x {d} (Dz) mm",
     "sum_category": "🏷 <b>Kategorija:</b> {category} (bāzes cena: {price} €) [bez 21% PVN]",
-    "sum_category_manual": "🏷 <b>Kategorija:</b> ⚠️ Individuāls menedžera aprēķins (izmēri ārpus S–XXL diapazona)",
+    "sum_category_manual": "🏷 <b>Kategorija:</b> ⚠️ Individuāls menedžera aprēķins (izmēri ārpus standarta diapazona)",
     "sum_photos": "🖼 <b>Foto:</b> {count} gab.",
     "sum_color": "🎨 <b>Krāsa:</b> {color} {surcharge}",
     "sum_country": "🌍 <b>Valsts:</b> {country}",
     "sum_address": "🏠 <b>Adrese:</b> {zip}, {address}",
-    "sum_contact": "👤 <b>Kontaktpersona:</b> {name}",
+    "sum_contact": "👤 <b>Vārds:</b> {name}",
+    "sum_email": "📧 <b>E-pasts:</b> {email}",
     "sum_phone": "📞 <b>Tālrunis:</b> {phone}",
+    "sum_payment": "💳 <b>Apmaksa:</b> {payment}",
     "sum_total": "💰 <b>KOPĀ:</b> {total} € (bez 21% PVN)",
     "sum_breakdown": "   = {base} € bāzes cena + {surcharge} € krāsas piemaksa",
     "sum_total_manual": "💰 <b>KOPĀ:</b> APRĒĶINĀS MENEDŽERIS",
@@ -140,7 +143,10 @@ TEXTS: dict[str, str] = {
     "hint_custom_color": "Lūdzu, ierakstiet RAL vai NCS krāsas kodu, piem. <code>RAL 9005</code>",
     "hint_country": "Lūdzu, izvēlieties valsti ar pogām augstāk vai ierakstiet tās nosaukumu.",
     "hint_address": "Lūdzu, nosūtiet pasta indeksu un piegādes adresi kā tekstu.",
-    "hint_contact": "Lūdzu, nosūtiet vārdu un tālruņa numuru kā tekstu vai nospiediet “📱 Dalīties ar kontaktu”.",
+    "hint_email": "Lūdzu, nosūtiet e-pasta adresi kā tekstu, piem. <code>janis@example.com</code>",
+    "hint_phone": "Lūdzu, nosūtiet tālruņa numuru kā tekstu vai nospiediet “📱 Dalīties ar kontaktu”.",
+    "hint_name": "Lūdzu, nosūtiet savu vārdu kā tekstu.",
+    "hint_payment": "Lūdzu, izvēlieties apmaksas veidu ar pogām augstāk.",
     "hint_confirmation": "Lūdzu, apstipriniet vai atceliet pasūtījumu ar pogām augstāk.",
     # ------------------------------------------------------------------ validation errors
     "err_dims_format": (
@@ -164,10 +170,6 @@ TEXTS: dict[str, str] = {
     "err_postal_missing": "Adresē neatradu pasta indeksu. Lūdzu, norādiet to.",
     "err_address_rest": "Lūdzu, pēc pasta indeksa norādiet pilsētu, ielu un mājas numuru.",
     "err_phone": "Tālruņa numurs nav derīgs. Lūdzu, izmantojiet starptautisko formātu, piem. +37120000000",
-    "err_name_chars": "Vārds un uzvārds var saturēt tikai burtus, defises un apostrofus.",
-    "err_full_name": "Lūdzu, ievadiet gan vārdu, gan uzvārdu, piem. Jānis Bērziņš",
-    "err_contact_format": (
-        "Lūdzu, nosūtiet savu vārdu, uzvārdu un tālruņa numuru, piem.\n"
-        "Jānis Bērziņš +37120000000\n\nvai nospiediet “Dalīties ar kontaktu” zemāk."
-    ),
+    "err_email": "Tas neizskatās pēc derīgas e-pasta adreses. Piemērs: janis@example.com",
+    "err_name_chars": "Vārds var saturēt tikai burtus, defises un apostrofus.",
 }

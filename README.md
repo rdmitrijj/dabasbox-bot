@@ -1,8 +1,8 @@
 # Dabasbox Order Bot
 
 Telegram bot that takes orders for Dabasbox protective heat pump enclosures:
-measurement instructions → net dimensions → 1–3 photos → colour → country → address → contact →
-summary → confirmation → notification (with photos) to the managers' chat.
+measurement instructions → net dimensions → 1–3 photos → colour → country → address → e-mail → phone →
+first name → payment method → summary → confirmation → notification (with photos) to the managers' chat.
 
 ## How it looks like
 
@@ -68,10 +68,13 @@ note if a custom colour was chosen).
 - Address: 10–300 characters and must contain a postal code. Latvia `LV-####`, Lithuania `LT-#####`,
   Estonia `#####` are checked and normalised; other countries use a generic postal-code pattern. The postal
   code and the rest of the address are stored separately for the admin card.
-- Contact: "Share Contact" button or text like `John Smith +37120000000`. Phones are normalised to E.164
-  (`+`, 7–15 digits, no leading 0; `00` prefix converted to `+`). The brief's `^\+?\d{1,14}$` would accept
-  1-digit numbers and reject valid 15-digit ones, so the E.164 length rule is used. If a shared contact has no
-  last name, the bot asks for the full name.
+- Contact: e-mail, then phone, then first name, each asked separately and all required. E-mail must look like
+  `name@domain.tld` (the domain is lower-cased). Phone is typed or sent with the "Share Contact" button;
+  phones are normalised to E.164 (`+`, 7–15 digits, no leading 0; `00` prefix converted to `+`). The brief's
+  `^\+?\d{1,14}$` would accept 1-digit numbers and reject valid 15-digit ones, so the E.164 length rule is used.
+  First name: letters, hyphens and apostrophes (up to 3 words, e.g. `Anna Maria`).
+- Payment: the customer must pick cash or bank transfer before the summary; it's shown on the summary and
+  the admin card.
 
 **Robustness.**
 - `/start` restarts, `/cancel` cancels at any step, `/language` switches language, `/help` lists commands.
@@ -103,8 +106,12 @@ The Latvian and Russian texts were machine-written; have a native speaker proofr
 To show a picture at a step, put an image file in `bot/images/` named after the step, e.g.
 `bot/images/start.png` for the welcome message or `color.jpg` for the colour buttons. The step's text becomes
 the photo caption (or follows the photo when it's longer than Telegram's 1024-character caption limit).
-Names: `start`, `dimensions`, `photos`, `color`, `custom_color`, `country`, `address`, `contact`; extensions
+Names: `start`, `dimensions`, `photos`, `color`, `custom_color`, `country`, `address`, `email`, `phone`,
+`name`, `payment`; extensions
 `.jpg .jpeg .png .webp`. Steps without a file send plain text. See `bot/images/README.txt`.
+
+For a language-specific picture, add the language code before the extension: `pumpinfo.lv.png` replaces
+`pumpinfo.png` for Latvian users (other languages keep seeing `pumpinfo.png`).
 
 ## Project layout
 

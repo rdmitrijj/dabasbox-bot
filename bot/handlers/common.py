@@ -28,7 +28,7 @@ fallback_router.message.filter(F.chat.type == "private")
 async def start_order(message: Message, state: FSMContext, t: Translator) -> None:
     await state.clear()
     await state.set_state(OrderFSM.waiting_for_instruction_ack)
-    await send_step(message, "start", t("welcome"), ReplyKeyboardRemove())
+    await send_step(message, "start", t("welcome"), ReplyKeyboardRemove(), lang=t.lang)
     await message.answer(t("tap_when_measured"), reply_markup=kb.instruction_ack_kb(t))
 
 
