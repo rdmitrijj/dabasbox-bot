@@ -4,7 +4,7 @@ Telegram bot that takes orders for Dabasbox protective heat pump enclosures:
 measurement instructions → net dimensions → 1–3 photos → colour → country → address → e-mail → phone →
 first name → payment method → summary → confirmation → notification (with photos) to the managers' chat.
 
-## How it looks like
+## So it looks like this:
 
 ![image alt](https://github.com/rdmitrijj/dabasbox-bot/blob/main/screenshot-2026-09-29_10.41.20.png?raw=true)
 
