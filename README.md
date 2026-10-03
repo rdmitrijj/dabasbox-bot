@@ -6,6 +6,8 @@ first name → payment method → summary → confirmation → notification (wit
 
 *THIS BOT IS NOT FOR PERSONAL USE*
 
+*the bot is made with AI assistance*
+
 ## So it looks like this:
 
 ![image alt](https://github.com/rdmitrijj/dabasbox-bot/blob/main/screenshot.png?raw=true)
