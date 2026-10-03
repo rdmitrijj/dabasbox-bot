@@ -27,6 +27,7 @@ from pydantic import ValidationError
 from .config import Settings, StorageBackend, get_settings
 from .handlers import build_root_router
 from .i18n import LANGUAGES, LanguageMiddleware
+from .services.email_domains import EmailDomainChecker
 from .services.locks import UserLocks
 from .services.orders import OrderLog
 
@@ -50,6 +51,7 @@ def build_dispatcher(settings: Settings, storage: BaseStorage | None = None) -> 
         storage=storage or build_storage(settings),
         settings=settings,
         user_locks=UserLocks(),
+        email_checker=EmailDomainChecker(),
         order_log=OrderLog(settings.orders_log_path),
     )
     language_middleware = LanguageMiddleware()

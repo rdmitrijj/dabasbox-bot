@@ -18,6 +18,7 @@ from ..i18n import LANGUAGES, Translator
 from ..media import send_step
 from ..order import IncompleteOrderError, Order
 from ..pricing import CUSTOM_COLOR_SURCHARGE, classify
+from ..services.email_domains import EmailDomainChecker
 from ..services.locks import UserLocks
 from ..services.orders import OrderLog, generate_order_id, notify_admins
 from ..states import OrderFSM
@@ -295,9 +296,12 @@ async def on_address(message: Message, state: FSMContext, t: Translator) -> None
 # ============================================================ Step 7: e-mail, phone, first name
 
 @router.message(OrderFSM.waiting_for_email, F.text)
-async def on_email(message: Message, state: FSMContext, t: Translator) -> None:
+async def on_email(message: Message, state: FSMContext, t: Translator, email_checker: EmailDomainChecker) -> None:
     try:
         email = parse_email(message.text or "")
+        domain = email.rsplit("@", 1)[1]
+        if not await email_checker.accepts_mail(domain):
+            raise ValidationError("err_email_domain", domain=domain)
     except ValidationError as exc:
         await _error(message, t, exc)
         return

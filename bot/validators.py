@@ -173,10 +173,69 @@ def parse_first_name(text: str) -> str:
 
 EMAIL_RE = re.compile(r"^[^@\s]+@[^@\s.]+(?:\.[^@\s.]+)*\.[^\W\d_]{2,}$", re.UNICODE)
 
+# Popular mailbox providers. A domain that is a near miss of one of these (gmail.co, gmial.com,
+# inbox.lc, hotmal.com) is treated as a typo even if it exists: typo domains are often parked
+# by squatters and *do* have mail servers. Real look-alike providers are listed so they pass.
+# Most likely first: on a tie (inbox.lc is one letter from inbox.lv and inbox.lt) the earlier one wins.
+KNOWN_EMAIL_DOMAINS = (
+    "gmail.com", "inbox.lv", "outlook.com", "hotmail.com", "icloud.com", "yahoo.com", "mail.ru", "yandex.ru",
+    # Baltics
+    "inbox.lt", "inbox.eu", "tvnet.lv", "apollo.lv", "one.lv", "mail.ee", "hot.ee",
+    # International
+    "googlemail.com", "live.com", "msn.com", "ymail.com", "me.com", "mac.com", "aol.com",
+    "proton.me", "protonmail.com", "protonmail.ch", "pm.me", "gmx.com", "gmx.net", "gmx.de", "web.de",
+    "mail.com", "email.com", "mail.de", "zoho.com", "tutanota.com", "fastmail.com", "fastmail.fm",
+    # Russian-speaking
+    "inbox.ru", "list.ru", "bk.ru", "yandex.com", "ya.ru", "rambler.ru",
+)
+# Providers that use only these exact domains, so the same name with any other ending is a mistake
+# (gmail.lv, gmail.co.uk, icloud.lv).
+_SINGLE_DOMAIN_PROVIDERS = {"gmail": "gmail.com", "googlemail": "googlemail.com", "icloud": "icloud.com"}
+
+
+def _edit_distance(a: str, b: str) -> int:
+    """Levenshtein distance that also counts swapping two adjacent letters as one edit."""
+    prev2: list[int] = []
+    prev = list(range(len(b) + 1))
+    for i, ca in enumerate(a, 1):
+        cur = [i] + [0] * len(b)
+        for j, cb in enumerate(b, 1):
+            cur[j] = min(prev[j] + 1, cur[j - 1] + 1, prev[j - 1] + (ca != cb))
+            if i > 1 and j > 1 and ca == b[j - 2] and a[i - 2] == cb:
+                cur[j] = min(cur[j], prev2[j - 2] + 1)
+        prev2, prev = prev, cur
+    return prev[-1]
+
+
+def suggest_email_domain(domain: str) -> str | None:
+    """The popular domain the user most likely meant, or None if `domain` doesn't look like a typo."""
+    if domain in KNOWN_EMAIL_DOMAINS:
+        return None
+    name = domain.split(".", 1)[0]
+    if name in _SINGLE_DOMAIN_PROVIDERS:
+        return _SINGLE_DOMAIN_PROVIDERS[name]
+    tld = domain.rsplit(".", 1)[-1]
+    best: tuple[int, str] | None = None
+    for known in KNOWN_EMAIL_DOMAINS:
+        # Very short domains are one letter away from too many real ones (ya.ru / yo.ru): skip them.
+        # Two typos only count when the ending matches, so regional domains such as outlook.cz pass.
+        if len(known) < 7:
+            continue
+        allowed = 2 if len(known) >= 11 and known.endswith(f".{tld}") else 1
+        if abs(len(domain) - len(known)) <= allowed:
+            distance = _edit_distance(domain, known)
+            if distance <= allowed and (best is None or distance < best[0]):
+                best = (distance, known)
+    return best[1] if best else None
+
 
 def parse_email(text: str) -> str:
     value = text.strip()
     if len(value) > 254 or not EMAIL_RE.match(value):
         raise ValidationError("err_email")
     local, domain = value.rsplit("@", 1)
-    return f"{local}@{domain.lower()}"
+    domain = domain.lower()
+    suggestion = suggest_email_domain(domain)
+    if suggestion:
+        raise ValidationError("err_email_typo", suggestion=f"{local}@{suggestion}")
+    return f"{local}@{domain}"

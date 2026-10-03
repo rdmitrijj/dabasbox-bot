@@ -171,5 +171,10 @@ TEXTS: dict[str, str] = {
     "err_address_rest": "Lūdzu, pēc pasta indeksa norādiet pilsētu, ielu un mājas numuru.",
     "err_phone": "Tālruņa numurs nav derīgs. Lūdzu, izmantojiet starptautisko formātu, piem. +37120000000",
     "err_email": "Tas neizskatās pēc derīgas e-pasta adreses. Piemērs: janis@example.com",
+    "err_email_typo": "Vai domājāt <b>{suggestion}</b>? Lūdzu, pārbaudiet daļu pēc @ un ievadiet pilnu adresi vēlreiz.",
+    "err_email_domain": (
+        "Domēns <b>{domain}</b> nevar saņemt e-pastu. "
+        "Lūdzu, pārbaudiet daļu pēc @ un ievadiet pilnu adresi, piem. vards@gmail.com vai vards@inbox.lv"
+    ),
     "err_name_chars": "Vārds var saturēt tikai burtus, defises un apostrofus.",
 }

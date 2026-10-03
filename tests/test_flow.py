@@ -29,6 +29,15 @@ from bot.config import Settings
 ADMIN_CHAT_ID = -1001234567890
 
 
+class FakeEmailChecker:
+    """No real DNS in tests: every domain accepts mail except the ones listed here."""
+
+    NO_MAIL = {"nomail.lv"}
+
+    async def accepts_mail(self, domain: str) -> bool:
+        return domain not in self.NO_MAIL
+
+
 class FakeSession(BaseSession):
     def __init__(self) -> None:
         super().__init__()
@@ -71,6 +80,7 @@ def env(tmp_path_factory):
     session = FakeSession()
     bot = Bot(token="42:TEST", session=session)
     dp = build_dispatcher(settings)  # routers are singletons: one dispatcher per test module
+    dp["email_checker"] = FakeEmailChecker()
     return bot, dp, session, log_path
 
 
@@ -184,6 +194,11 @@ async def test_full_order_base_color(env):
 
     await c.text("john@example")
     assert "valid e-mail" in c.last_text()
+    await c.text("john@gmail.co")
+    assert "Did you mean <b>john@gmail.com</b>?" in c.last_text()
+    await c.text("john@nomail.lv")
+    assert "<b>nomail.lv</b> can't receive e-mail" in c.last_text()
+    assert await c.state() == "OrderFSM:waiting_for_email"
     await c.text("john@Example.com")
     assert await c.state() == "OrderFSM:waiting_for_phone"
     await c.text("call me")

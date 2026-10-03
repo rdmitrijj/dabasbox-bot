@@ -69,7 +69,11 @@ note if a custom colour was chosen).
   Estonia `#####` are checked and normalised; other countries use a generic postal-code pattern. The postal
   code and the rest of the address are stored separately for the admin card.
 - Contact: e-mail, then phone, then first name, each asked separately and all required. E-mail must look like
-  `name@domain.tld` (the domain is lower-cased). Phone is typed or sent with the "Share Contact" button;
+  `name@domain.tld` (the domain is lower-cased) and the domain must really receive mail: near misses of
+  popular providers are refused with a suggestion (`gmail.co` → "Did you mean …@gmail.com?", also `gmial.com`,
+  `inbox.lc`, `hotmal.com`), and then a DNS MX lookup must find a mail server for the domain, so any real
+  domain (`edu.riga.lv`, a company domain) passes while made-up ones and null-MX domains fail. If DNS itself
+  is unreachable the address is accepted rather than blocking the order. Phone is typed or sent with the "Share Contact" button;
   phones are normalised to E.164 (`+`, 7–15 digits, no leading 0; `00` prefix converted to `+`). The brief's
   `^\+?\d{1,14}$` would accept 1-digit numbers and reject valid 15-digit ones, so the E.164 length rule is used.
   First name: letters, hyphens and apostrophes (up to 3 words, e.g. `Anna Maria`).

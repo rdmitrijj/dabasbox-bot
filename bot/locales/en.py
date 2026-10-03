@@ -177,5 +177,10 @@ TEXTS: dict[str, str] = {
     "err_address_rest": "Please add the city, street and house number after the postal code.",
     "err_phone": "The phone number is not valid. Please use the international format, e.g. +37120000000",
     "err_email": "This doesn't look like a valid e-mail address. Example: john@example.com",
+    "err_email_typo": "Did you mean <b>{suggestion}</b>? Please check the part after @ and enter the full address again.",
+    "err_email_domain": (
+        "The domain <b>{domain}</b> can't receive e-mail. "
+        "Please check the part after @ and enter the full address, e.g. name@gmail.com or name@inbox.lv"
+    ),
     "err_name_chars": "The first name may contain letters, hyphens and apostrophes only.",
 }

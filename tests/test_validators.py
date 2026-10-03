@@ -104,6 +104,40 @@ def test_email_bad(text):
         parse_email(text)
 
 
+@pytest.mark.parametrize(
+    ("text", "suggestion"),
+    [
+        ("John@gmail.co", "John@gmail.com"),
+        ("john@Gmail.Cm", "john@gmail.com"),
+        ("john@gmial.com", "john@gmail.com"),
+        ("john@gmail.lv", "john@gmail.com"),
+        ("john@gmail.co.uk", "john@gmail.com"),
+        ("john@inbox.lc", "john@inbox.lv"),
+        ("john@inbx.lv", "john@inbox.lv"),
+        ("john@hotmial.com", "john@hotmail.com"),
+        ("john@hotmal.com", "john@hotmail.com"),
+        ("john@otlok.com", "john@outlook.com"),
+        ("john@outlok.com", "john@outlook.com"),
+        ("john@mail.ry", "john@mail.ru"),
+        ("john@icloud.lv", "john@icloud.com"),
+    ],
+)
+def test_email_typo(text, suggestion):
+    with pytest.raises(ValidationError) as exc:
+        parse_email(text)
+    assert exc.value.key == "err_email_typo"
+    assert exc.value.params == {"suggestion": suggestion}
+
+
+@pytest.mark.parametrize(
+    "domain",
+    ["gmail.com", "inbox.lv", "inbox.lt", "edu.riga.lv", "rtu.lv", "email.com", "ymail.com", "mail.de",
+     "outlook.cz", "hotmail.de", "protonmail.ch", "fastmail.fm", "yandex.by", "company.lv"],
+)
+def test_email_not_typo(domain):
+    assert parse_email(f"john@{domain}") == f"john@{domain}"
+
+
 def test_first_name():
     assert parse_first_name("jānis") == "Jānis"
     assert parse_first_name(" Anna  Maria ") == "Anna Maria"
