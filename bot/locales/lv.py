@@ -102,6 +102,7 @@ TEXTS: dict[str, str] = {
     "payment_transfer": "🏦 Ar bankas pārskaitījumu",
     "payment_chosen": "💳 Apmaksa: <b>{payment}</b>",
     # ------------------------------------------------------------------ summary
+    "summary_photos": "🖼 <b>Jūsu foto ({count} gab.)</b> — tie tiks nosūtīti Dabasbox kopā ar pasūtījumu",
     "summary_title": "🧾 <b>PASŪTĪJUMA KOPSAVILKUMS</b>",
     "sum_dims": "📐 <b>Neto izmēri:</b> {h} (A) x {w} (P) x {d} (Dz) mm",
     "sum_category": "🏷 <b>Kategorija:</b> {category} (bāzes cena: {price} €) [bez 21% PVN]",

@@ -55,6 +55,16 @@ async def _call_with_retry(coro_factory, attempts: int = 3):
             await asyncio.sleep(exc.retry_after + 0.5)
 
 
+async def send_photos(bot: Bot, chat_id: int, photos: tuple[str, ...] | list[str], caption: str) -> None:
+    """One photo as a photo, several as an album; the caption goes on the first one."""
+    if len(photos) == 1:
+        await _call_with_retry(lambda: bot.send_photo(chat_id, photos[0], caption=caption))
+    elif photos:
+        media = [InputMediaPhoto(media=file_id) for file_id in photos]
+        media[0] = InputMediaPhoto(media=photos[0], caption=caption)
+        await _call_with_retry(lambda: bot.send_media_group(chat_id, media=media))
+
+
 async def notify_admins(bot: Bot, admin_chat_id: int, order: Order) -> None:
     """Send the order card and its photos to the management chat.
 
@@ -64,18 +74,10 @@ async def notify_admins(bot: Bot, admin_chat_id: int, order: Order) -> None:
     text = order.admin_notification_html()
     await _call_with_retry(lambda: bot.send_message(admin_chat_id, text, disable_web_page_preview=True))
 
-    photos = list(order.photos)
-    if not photos:
+    if not order.photos:
         return
     try:
-        if len(photos) == 1:
-            await _call_with_retry(
-                lambda: bot.send_photo(admin_chat_id, photos[0], caption=f"#DABASBOX-{order.order_id}")
-            )
-        else:
-            media = [InputMediaPhoto(media=file_id) for file_id in photos]
-            media[0] = InputMediaPhoto(media=photos[0], caption=f"#DABASBOX-{order.order_id}")
-            await _call_with_retry(lambda: bot.send_media_group(admin_chat_id, media=media))
+        await send_photos(bot, admin_chat_id, order.photos, f"#DABASBOX-{order.order_id}")
     except TelegramAPIError:
         logger.exception("Failed to send photos for order %s", order.order_id)
         try:

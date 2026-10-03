@@ -214,6 +214,11 @@ async def test_full_order_base_color(env):
     assert "payment method" in c.last_text()
     await c.press("pay:transfer")
     assert await c.state() == "OrderFSM:waiting_for_confirmation"
+    # The customer sees the photos that will be sent, right before the summary text.
+    album, summary_msg = c.session.sent_to(c.chat.id)[-2:]
+    assert isinstance(album, SendMediaGroup) and isinstance(summary_msg, SendMessage)
+    assert [m.media for m in album.media] == ["photo2", "photo3", "photo4"]
+    assert album.media[0].caption.startswith("🖼 <b>Your photos (3 pcs)</b>")
     summary = c.last_text()
     assert "<b>Name:</b> John" in summary
     assert "<b>E-mail:</b> john@example.com" in summary
@@ -279,6 +284,8 @@ async def test_custom_color_other_country_shared_contact_manual_price(env):
     await c.text("Anna")
     await c.press("pay:cash")
     assert await c.state() == "OrderFSM:waiting_for_confirmation"
+    photo = c.session.sent_to(c.chat.id)[-2]
+    assert isinstance(photo, SendPhoto) and photo.caption.startswith("🖼 <b>Your photos (1 pcs)</b>")
     summary = c.last_text()
     assert "Individual Manager Calculation" in summary
     assert "TO BE CALCULATED BY A MANAGER (+30 € custom colour surcharge applies)" in summary

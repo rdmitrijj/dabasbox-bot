@@ -20,7 +20,7 @@ from ..order import IncompleteOrderError, Order
 from ..pricing import CUSTOM_COLOR_SURCHARGE, classify
 from ..services.email_domains import EmailDomainChecker
 from ..services.locks import UserLocks
-from ..services.orders import OrderLog, generate_order_id, notify_admins
+from ..services.orders import OrderLog, generate_order_id, notify_admins, send_photos
 from ..states import OrderFSM
 from ..utils import escape
 from ..validators import (
@@ -347,7 +347,9 @@ async def on_name(message: Message, state: FSMContext, t: Translator) -> None:
 # ============================================================ Step 8: payment method
 
 @router.callback_query(OrderFSM.waiting_for_payment, kb.PaymentCb.filter())
-async def on_payment(callback: CallbackQuery, callback_data: kb.PaymentCb, state: FSMContext, t: Translator) -> None:
+async def on_payment(
+    callback: CallbackQuery, callback_data: kb.PaymentCb, state: FSMContext, bot: Bot, t: Translator
+) -> None:
     await callback.answer()
     if callback_data.method not in PAYMENT_METHODS:
         return
@@ -355,12 +357,12 @@ async def on_payment(callback: CallbackQuery, callback_data: kb.PaymentCb, state
     await state.update_data(payment=callback_data.method)
     if isinstance(callback.message, Message):
         await callback.message.answer(t("payment_chosen", payment=t(f"payment_{callback_data.method}")))
-        await _show_summary(callback.message, state, t)
+        await _show_summary(callback.message, state, bot, t)
 
 
 # ============================================================ Step 9: summary & confirmation
 
-async def _show_summary(message: Message, state: FSMContext, t: Translator) -> None:
+async def _show_summary(message: Message, state: FSMContext, bot: Bot, t: Translator) -> None:
     try:
         order = Order.from_fsm(await state.get_data())
     except IncompleteOrderError:
@@ -368,6 +370,11 @@ async def _show_summary(message: Message, state: FSMContext, t: Translator) -> N
         await _restart_required(message, state, t)
         return
     await state.set_state(OrderFSM.waiting_for_confirmation)
+    # Show the customer exactly which photos go to Dabasbox; the summary still works if this fails.
+    try:
+        await send_photos(bot, message.chat.id, order.photos, t("summary_photos", count=len(order.photos)))
+    except TelegramAPIError:
+        logger.exception("Failed to show photos in the summary for chat %s", message.chat.id)
     await message.answer(order.summary_html(t), reply_markup=kb.confirmation_kb(t))
 
 

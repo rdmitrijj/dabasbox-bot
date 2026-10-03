@@ -106,6 +106,7 @@ TEXTS: dict[str, str] = {
     "payment_transfer": "🏦 Bank transfer",
     "payment_chosen": "💳 Payment: <b>{payment}</b>",
     # ------------------------------------------------------------------ summary
+    "summary_photos": "🖼 <b>Your photos ({count} pcs)</b> — they will be sent to Dabasbox with your order",
     "summary_title": "🧾 <b>ORDER SUMMARY</b>",
     "sum_dims": "📐 <b>Net dimensions:</b> {h} (H) x {w} (W) x {d} (D) mm",
     "sum_category": "🏷 <b>Category:</b> {category} (Base price: {price} €) [excl. 21% VAT]",
