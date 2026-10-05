@@ -6,7 +6,7 @@ first name → payment method → summary → confirmation → notification (wit
 
 ## So it looks like this:
 
-![image alt]()
+![image alt](https://github.com/rdmitrijj/dabasbox-bot/blob/main/screenshot.png?raw=true)
 
 
 
