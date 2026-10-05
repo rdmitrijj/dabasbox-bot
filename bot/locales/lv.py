@@ -119,6 +119,7 @@ TEXTS: dict[str, str] = {
     "sum_breakdown": "   = {base} € bāzes cena + {surcharge} € krāsas piemaksa",
     "sum_total_manual": "💰 <b>KOPĀ:</b> APRĒĶINĀS MENEDŽERIS",
     "sum_total_manual_custom": "💰 <b>KOPĀ:</b> APRĒĶINĀS MENEDŽERIS (+{surcharge} € piemaksa par individuālu krāsu)",
+    "sum_shipping": "🚚 Piegādes izmaksas tiks nosūtītas uz norādīto e-pasta adresi: {email}",
     "sum_check": "Lūdzu, pārbaudiet datus un apstipriniet pasūtījumu.",
     "btn_confirm": "✅ Apstiprināt un nosūtīt",
     "btn_cancel": "❌ Atcelt",

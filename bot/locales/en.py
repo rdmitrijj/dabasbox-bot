@@ -125,6 +125,7 @@ TEXTS: dict[str, str] = {
     "sum_total_manual_custom": (
         "💰 <b>TOTAL PRICE:</b> TO BE CALCULATED BY A MANAGER (+{surcharge} € custom colour surcharge applies)"
     ),
+    "sum_shipping": "🚚 The shipping cost will be sent to the specified e-mail address: {email}",
     "sum_check": "Please check the details and confirm your order.",
     "btn_confirm": "✅ Confirm & Submit Order",
     "btn_cancel": "❌ Cancel",

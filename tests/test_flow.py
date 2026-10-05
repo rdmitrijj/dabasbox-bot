@@ -224,6 +224,7 @@ async def test_full_order_base_color(env):
     assert "<b>E-mail:</b> john@example.com" in summary
     assert "<b>Payment:</b> 🏦 Bank transfer" in summary
     assert "M (Base price: 280 €)" in summary
+    assert "The shipping cost will be sent to the specified e-mail address: john@example.com" in summary
     assert "Anthracite RAL7016 (0 €, included)" in summary
     assert "280 € (excl. 21% VAT)" in summary
     assert "LV-1010, Riga, Brivibas iela 1-5" in summary

@@ -171,6 +171,8 @@ class Order:
                 "",
                 total,
                 "",
+                t("sum_shipping", email=e(self.email)),
+                "",
                 t("sum_check"),
             ]
         )

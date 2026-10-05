@@ -119,6 +119,7 @@ TEXTS: dict[str, str] = {
     "sum_breakdown": "   = {base} € базовая цена + {surcharge} € доплата за цвет",
     "sum_total_manual": "💰 <b>ИТОГО:</b> РАССЧИТАЕТ МЕНЕДЖЕР",
     "sum_total_manual_custom": "💰 <b>ИТОГО:</b> РАССЧИТАЕТ МЕНЕДЖЕР (+{surcharge} € доплата за свой цвет)",
+    "sum_shipping": "🚚 Стоимость доставки будет отправлена на указанный e-mail: {email}",
     "sum_check": "Пожалуйста, проверьте данные и подтвердите заказ.",
     "btn_confirm": "✅ Подтвердить и отправить",
     "btn_cancel": "❌ Отмена",
