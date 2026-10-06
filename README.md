@@ -4,47 +4,13 @@ Telegram bot that takes orders for Dabasbox protective heat pump enclosures:
 measurement instructions → net dimensions → 1–3 photos → colour → country → address → e-mail → phone →
 first name → payment method → summary → confirmation → notification (with photos) to the managers' chat.
 
+*Made with AI assistance. NOT FOR PERSONAL USE*
+
+
 ## So it looks like this:
 
 ![image alt](https://github.com/rdmitrijj/dabasbox-bot/blob/main/screenshot.png?raw=true)
 
-
-
-## Quick start
-
-```bash
-python3 -m venv .venv && . .venv/bin/activate
-pip install -r requirements.txt
-cp .env.example .env        # fill in BOT_TOKEN and ADMIN_CHAT_ID
-python -m bot
-```
-
-`ADMIN_CHAT_ID` is the chat that receives orders: a user id or a group id (`-100…`). Add the bot to the
-group first. To find a group id, add e.g. @RawDataBot to the group temporarily, or read `chat.id` from
-`https://api.telegram.org/bot<TOKEN>/getUpdates` after posting in the group.
-
-### Docker (with Redis)
-
-```bash
-cp .env.example .env   # fill in BOT_TOKEN and ADMIN_CHAT_ID
-docker compose up -d --build
-```
-
-The compose file switches FSM storage to Redis, so unfinished orders survive restarts.
-
-## Configuration (.env)
-
-| Variable | Default | Meaning |
-| --- | --- | --- |
-| `BOT_TOKEN` | required | Token from @BotFather |
-| `ADMIN_CHAT_ID` | required | Management chat for new orders |
-| `FSM_STORAGE` | `memory` | `memory` or `redis` |
-| `REDIS_URL` | `redis://localhost:6379/0` | Used when `FSM_STORAGE=redis` |
-| `REDIS_STATE_TTL` | `604800` | Seconds an unfinished order is kept in Redis |
-| `ORDERS_LOG_PATH` | `data/orders.jsonl` | Every confirmed order is appended here as JSON |
-| `LOG_LEVEL` | `INFO` | Python logging level |
-
-## Business rules implemented
 
 **Size category.** Each dimension is mapped to the smallest category whose upper bound covers it, and the
 largest category across height, width and depth wins (e.g. 750×900×450 → M, 280 €). The catalogue ranges
